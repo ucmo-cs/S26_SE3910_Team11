@@ -1,0 +1,38 @@
+services:
+
+  # ─── Spring Boot Backend ──────────────────────────────────────────
+  backend:
+    build: ./commerce-bank-java
+    container_name: commercebank-backend
+    ports:
+      - "8080:8080"
+    environment:
+      # Connects to PostgreSQL running on your host machine
+      DB_URL: jdbc:postgresql://host.docker.internal:5432/commercebank
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+
+      # Employee password hashes (SHA-256)
+      STAFF_HASH: ${STAFF_HASH:-1fc1953af748f9a78b82a172142930455642698588d23fba82a23cf5b3892370}
+      ADMIN_HASH: ${ADMIN_HASH:-5fe88dc0ae077885a977eaa1a8a1da31d6f305c6074053cab564400ec0bee667}
+
+      # CORS — allow the Vite dev server
+      CORS_ORIGINS: http://localhost:5173
+
+      # Optional: set your OpenAI key to enable the chat assistant
+      CHAT_API_KEY: ${CHAT_API_KEY:-}
+    extra_hosts:
+      # Makes host.docker.internal resolve on Linux (already works on Mac/Windows)
+      - "host.docker.internal:host-gateway"
+
+  # ─── React Frontend ───────────────────────────────────────────────
+  frontend:
+    build: ./commerce-bank-frontend
+    container_name: commercebank-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      # Vite dev server proxies /api → backend container
+      VITE_BACKEND_URL: http://backend:8080
+    depends_on:
+      - backend

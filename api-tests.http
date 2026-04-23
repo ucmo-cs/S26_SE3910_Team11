@@ -1,0 +1,205 @@
+### Commerce Bank API — IntelliJ REST Client
+### Install plugin: Settings → Plugins → search "REST Client" (by Jetbrains or community)
+### Usage: click the green ▶ button next to any request to run it
+
+@baseUrl = http://localhost:8080/api
+
+# After running "Employee Login" below, paste the returned token here:
+@token = PASTE_TOKEN_HERE
+
+
+###
+### ══════════════════════════════════════════════
+###  REFERENCE DATA (public)
+### ══════════════════════════════════════════════
+
+### Get all topics
+GET {{baseUrl}}/topics
+
+### Get all branches
+GET {{baseUrl}}/branches
+
+### Get branches for a specific topic (1 = Open an account)
+GET {{baseUrl}}/branches?topicId=1
+
+### Get all available time slots
+GET {{baseUrl}}/appointments/time-slots
+
+### Get booked slots for branch 1 on a specific date
+GET {{baseUrl}}/appointments/slots?branchId=1&date=2026-06-01
+
+
+###
+### ══════════════════════════════════════════════
+###  BOOKING (public)
+### ══════════════════════════════════════════════
+
+### Book a new appointment
+POST {{baseUrl}}/appointments
+Content-Type: application/json
+
+{
+  "topicId": 1,
+  "branchId": 1,
+  "date": "2026-06-15",
+  "time": "10:00",
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "email": "jane.doe@example.com",
+  "phone": "555-123-4567"
+}
+
+### Book — should fail (slot already taken after first booking above)
+POST {{baseUrl}}/appointments
+Content-Type: application/json
+
+{
+  "topicId": 1,
+  "branchId": 1,
+  "date": "2026-06-15",
+  "time": "10:00",
+  "firstName": "Another",
+  "lastName": "Person",
+  "email": "another@example.com",
+  "phone": "555-999-0000"
+}
+
+### Book — should fail (invalid email)
+POST {{baseUrl}}/appointments
+Content-Type: application/json
+
+{
+  "topicId": 1,
+  "branchId": 1,
+  "date": "2026-06-15",
+  "time": "11:00",
+  "firstName": "Bad",
+  "lastName": "Email",
+  "email": "not-an-email",
+  "phone": "555-000-0000"
+}
+
+
+###
+### ══════════════════════════════════════════════
+###  EMPLOYEE AUTH
+### ══════════════════════════════════════════════
+
+### Staff login — returns { role: "staff", token: "..." }
+### Copy the token value into @token above
+POST {{baseUrl}}/employee/login
+Content-Type: application/json
+
+{
+  "password": "Mul3$!26"
+}
+
+### Admin login — use your admin password here
+POST {{baseUrl}}/employee/login
+Content-Type: application/json
+
+{
+  "password": "YOUR_ADMIN_PASSWORD_HERE"
+}
+
+### Wrong password — should return 401
+POST {{baseUrl}}/employee/login
+Content-Type: application/json
+
+{
+  "password": "wrongpassword"
+}
+
+
+###
+### ══════════════════════════════════════════════
+###  ADMIN — APPOINTMENTS  (requires token)
+### ══════════════════════════════════════════════
+
+### Get all appointments
+GET {{baseUrl}}/admin/appointments
+Authorization: Bearer {{token}}
+
+### Search by name or email
+GET {{baseUrl}}/admin/appointments?search=jane
+Authorization: Bearer {{token}}
+
+### Filter by date range
+GET {{baseUrl}}/admin/appointments?dateFrom=2026-06-01&dateTo=2026-06-30
+Authorization: Bearer {{token}}
+
+### Reschedule an appointment — replace APPOINTMENT_ID with a real UUID
+PATCH {{baseUrl}}/admin/appointments/APPOINTMENT_ID/reschedule
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "date": "2026-06-20",
+  "time": "14:00"
+}
+
+### Update status (confirmed | cancelled | completed | no_show | pending_action)
+PATCH {{baseUrl}}/admin/appointments/APPOINTMENT_ID/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "completed"
+}
+
+### Save staff notes
+PATCH {{baseUrl}}/admin/appointments/APPOINTMENT_ID/notes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "staffNotes": "Customer called ahead to confirm."
+}
+
+### Cancel appointment (admin only)
+DELETE {{baseUrl}}/admin/appointments/APPOINTMENT_ID
+Authorization: Bearer {{token}}
+
+### Get appointment change history
+GET {{baseUrl}}/admin/appointments/APPOINTMENT_ID/history
+Authorization: Bearer {{token}}
+
+
+###
+### ══════════════════════════════════════════════
+###  ADMIN — AUDIT LOG  (admin role only)
+### ══════════════════════════════════════════════
+
+### Get full audit log
+GET {{baseUrl}}/admin/audit
+Authorization: Bearer {{token}}
+
+### Write an explicit audit entry
+POST {{baseUrl}}/admin/audit
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "action": "appointment.status_change",
+  "appointmentId": "APPOINTMENT_ID",
+  "details": {
+    "from": "confirmed",
+    "to": "completed"
+  }
+}
+
+
+###
+### ══════════════════════════════════════════════
+###  CHAT ASSISTANT  (public)
+### ══════════════════════════════════════════════
+
+### Send a chat message (streams SSE — requires CHAT_API_KEY to be set)
+POST {{baseUrl}}/chat
+Content-Type: application/json
+
+{
+  "messages": [
+    { "role": "user", "content": "What branches are near Harrisonville?" }
+  ]
+}
